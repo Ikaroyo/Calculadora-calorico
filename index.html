@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitCalc PRO - Definición & Volumen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+            background-image: linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), 
+                              url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .fit-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .fit-input {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            color: #f1f5f9;
+            transition: all 0.2s;
+        }
+        .fit-input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+            outline: none;
+        }
+        .phase-btn.active {
+            background: #38bdf8;
+            color: white;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+        .bulk-mode .phase-btn.active {
+            background: #f59e0b;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+        .source-tag {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-6 px-4 pb-20">
+    <div class="max-w-6xl mx-auto mb-8 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <div id="brandIcon" class="w-10 h-10 accent-gradient rounded-xl flex items-center justify-center transition-all duration-500">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tight">FITCALC <span id="brandSub" class="text-blue-400">PRO</span></h1>
+                <p id="brandTag" class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Scientific Performance</p>
+            </div>
+        </div>
+        <div id="cloudStatus" class="flex items-center gap-2 opacity-50">
+            <span class="status-badge bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full text-[10px] font-bold">SINCRONIZADO</span>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- PANEL DE CONTROL -->
+        <div class="lg:col-span-4 space-y-6">
+            <!-- Objetivo Principal -->
+            <div class="fit-card p-4 flex gap-2">
+                <button id="goalLose" class="phase-btn active flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all">PERDER GRASA</button>
+                <button id="goalGain" class="phase-btn flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all border border-slate-700">SUBIR MÚSCULO</button>
+            </div>
+
+            <!-- Fase de Entrenamiento -->
+            <div id="phaseContainer" class="fit-card p-3 flex gap-2 bg-slate-900/40">
+                <button id="btnNormal" class="phase-btn active flex-1 py-2 rounded-lg text-[9px] font-bold uppercase">Sostenible</button>
+                <button id="btnSprint" class="phase-btn flex-1 py-2 rounded-lg text-[9px] font-bold uppercase">Agresivo</button>
+            </div>
+
+            <div class="fit-card p-6 shadow-2xl">
+                <div class="space-y-5">
+                    <div class="flex p-1 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                        <label class="flex-1">
+                            <input type="radio" name="sexo" value="hombre" checked class="hidden peer">
+                            <div class="text-center py-2 rounded-lg cursor-pointer transition-all peer-checked:bg-blue-500 peer-checked:text-white text-slate-400 text-xs font-bold uppercase tracking-tighter">Hombre</div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="sexo" value="mujer" class="hidden peer">
+                            <div class="text-center py-2 rounded-lg cursor-pointer transition-all peer-checked:bg-pink-500 peer-checked:text-white text-slate-400 text-xs font-bold uppercase tracking-tighter">Mujer</div>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Edad</label>
+                            <input type="number" id="edad" value="25" class="fit-input w-full p-3 rounded-xl font-bold text-lg">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Altura (cm)</label>
+                            <input type="number" id="altura" value="175" class="fit-input w-full p-3 rounded-xl font-bold text-lg">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Peso Actual</label>
+                            <input type="number" id="peso" value="85.0" step="0.1" class="fit-input w-full p-3 rounded-xl font-bold text-lg">
+                        </div>
+                        <div class="space-y-1">
+                            <label id="labelMeta" class="text-[10px] font-bold text-blue-400 uppercase ml-1">Meta (kg)</label>
+                            <input type="number" id="pesoObjetivo" value="75.0" step="0.1" class="fit-input w-full p-3 rounded-xl font-bold text-lg border-blue-500/30">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Actividad</label>
+                        <select id="actividad" class="fit-input w-full p-3 rounded-xl font-semibold text-sm appearance-none">
+                            <option value="1.2">Sedentario</option>
+                            <option value="1.375">Ligero (1-2 días)</option>
+                            <option value="1.55" selected>Moderado (3-5 días)</option>
+                            <option value="1.725">Intenso (6-7 días)</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-2">
+                        <div class="flex justify-between items-end mb-2">
+                            <div>
+                                <label id="labelSlider" class="text-[10px] font-bold text-slate-500 uppercase">Déficit Diario</label>
+                                <div id="safetyLabel" class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5">SOSTENIBLE</div>
+                            </div>
+                            <span id="rangeDisplay" class="text-xl font-black text-blue-400">500 kcal</span>
+                        </div>
+                        <input type="range" id="deficitRange" min="100" max="1500" step="50" value="500" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULTADOS -->
+        <div class="lg:col-span-8 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="fit-card p-5 border-t-4 border-t-slate-500 bg-slate-800/20">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mantenimiento</span>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span id="resTDEE" class="text-3xl font-black">--</span>
+                        <span class="text-xs text-slate-500">kcal</span>
+                    </div>
+                </div>
+                <div id="targetCard" class="fit-card p-5 border-t-4 border-t-blue-500 bg-blue-500/10">
+                    <span id="txtTarget" class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Consumo Meta</span>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span id="resObjetivo" class="text-3xl font-black text-blue-400">--</span>
+                        <span class="text-xs text-blue-400/60">kcal</span>
+                    </div>
+                </div>
+                <div id="statCard" class="fit-card p-5 border-t-4 border-t-emerald-500 bg-emerald-500/5">
+                    <span id="txtStat" class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Pérdida/Día</span>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span id="resKgDia" class="text-3xl font-black text-emerald-400">--</span>
+                        <span class="text-xs text-emerald-500/60">kg</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="goalSection" class="fit-card p-8 bg-gradient-to-br from-blue-600/80 to-indigo-900/80 border-none relative overflow-hidden shadow-2xl">
+                <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3 id="txtTimeGoal" class="text-blue-100 text-xs font-bold uppercase tracking-[0.2em] mb-2">Estimación para meta</h3>
+                        <div class="flex items-baseline gap-2">
+                            <span id="resDiasMeta" class="text-7xl font-black tracking-tighter">--</span>
+                            <span class="text-2xl font-bold opacity-80 uppercase">Días</span>
+                        </div>
+                        <div id="resFechaEstimada" class="text-white text-lg font-black mt-2 tracking-tight">--</div>
+                    </div>
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/10 backdrop-blur-xl">
+                        <div class="flex justify-between items-start mb-3">
+                            <p class="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Proteína Diaria</p>
+                            <span id="priorityBadge" class="text-[9px] bg-blue-500/20 px-2 py-0.5 rounded text-blue-300 font-bold uppercase tracking-tighter">Estándar</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="resProt" class="text-4xl font-black text-white">--</span>
+                            <span class="text-sm font-bold opacity-70">g total</span>
+                        </div>
+                        <div id="microSection" class="mt-4 pt-4 border-t border-white/10 space-y-2">
+                            <p id="txtNutri" class="text-[9px] font-bold text-blue-300 uppercase tracking-widest">Sugerencia Nutricional</p>
+                            <div id="nutriTags" class="flex flex-wrap gap-2">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Fuentes Sugeridas -->
+            <div id="sourcesCard" class="fit-card p-6 border-l-4 border-l-blue-500 bg-blue-500/5">
+                <h3 id="txtSourcesTitle" class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-4 flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2z"></path></svg>
+                    Fuentes de Nutrientes Recomendadas
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <p id="txtFood1" class="text-[10px] font-bold text-slate-400 uppercase mb-2">Proteína & Masa</p>
+                        <ul id="listFood1" class="text-xs space-y-1 text-slate-300">
+                            <!-- Dinámico -->
+                        </ul>
+                    </div>
+                    <div>
+                        <p id="txtFood2" class="text-[10px] font-bold text-slate-400 uppercase mb-2">Energía & Salud</p>
+                        <ul id="listFood2" class="text-xs space-y-1 text-slate-300">
+                            <!-- Dinámico -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'fitcalc-v2';
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let user = null;
+        let isFirstLoad = true;
+        let sprintMode = false;
+        let goalIsGain = false; // False = Perder Grasa, True = Ganar Músculo
+
+        const updateUI = (data) => {
+            const sexo = data.sexo || 'hombre';
+            const edad = parseFloat(data.edad) || 25;
+            const altura = parseFloat(data.altura) || 175;
+            const peso = parseFloat(data.peso) || 85;
+            const pesoMeta = parseFloat(data.pesoObjetivo) || (goalIsGain ? 90 : 75);
+            const actividad = parseFloat(data.actividad) || 1.55;
+            const rangeVal = parseFloat(data.deficitRange) || (goalIsGain ? 300 : 500);
+
+            let tmb = (sexo === 'hombre') 
+                ? (10 * peso) + (6.25 * altura) - (5 * edad) + 5
+                : (10 * peso) + (6.25 * altura) - (5 * edad) - 161;
+
+            const tdee = tmb * actividad;
+            const objetivo = goalIsGain ? tdee + rangeVal : tdee - rangeVal;
+            const kgDia = rangeVal / 7700;
+            const pesoCambio = goalIsGain ? pesoMeta - peso : peso - pesoMeta;
+
+            // Proteína: Mas alta en volumen para construir, o en sprint para proteger
+            const protRatio = goalIsGain ? 2.0 : (sprintMode ? 2.4 : 1.8);
+            const protTotal = peso * protRatio;
+
+            // Actualizar Textos y UI
+            document.getElementById('resTDEE').innerText = Math.round(tdee);
+            document.getElementById('resObjetivo').innerText = Math.round(objetivo);
+            document.getElementById('resKgDia').innerText = kgDia.toFixed(3);
+            document.getElementById('resProt').innerText = Math.round(protTotal);
+            document.getElementById('rangeDisplay').innerText = `${rangeVal} kcal`;
+
+            if (pesoCambio > 0) {
+                const dias = (pesoCambio * 7700) / rangeVal;
+                document.getElementById('resDiasMeta').innerText = Math.round(dias);
+                const fecha = new Date();
+                fecha.setDate(fecha.getDate() + dias);
+                document.getElementById('resFechaEstimada').innerText = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase();
+            } else {
+                document.getElementById('resDiasMeta').innerText = "0";
+                document.getElementById('resFechaEstimada').innerText = "META ALCANZADA";
+            }
+
+            // Safety Labels logic
+            const safetyPct = (rangeVal / tdee) * 100;
+            const safetyLabel = document.getElementById('safetyLabel');
+            
+            if (goalIsGain) {
+                if (rangeVal <= 300) {
+                    safetyLabel.innerText = "VOLUMEN LIMPIO";
+                    safetyLabel.className = "text-[9px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5";
+                } else if (rangeVal <= 600) {
+                    safetyLabel.innerText = "VOLUMEN MODERADO";
+                    safetyLabel.className = "text-[9px] font-bold text-amber-500 uppercase tracking-widest mt-0.5";
+                } else {
+                    safetyLabel.innerText = "VOLUMEN SUCIO (RIESGO GRASA)";
+                    safetyLabel.className = "text-[9px] font-bold text-red-500 uppercase tracking-widest mt-0.5";
+                }
+            } else {
+                if (safetyPct > 35) {
+                    safetyLabel.innerText = "SPRINT (ALTO RIESGO)";
+                    safetyLabel.className = "text-[9px] font-bold text-red-500 uppercase tracking-widest mt-0.5";
+                } else if (safetyPct > 20) {
+                    safetyLabel.innerText = "AGRESIVO";
+                    safetyLabel.className = "text-[9px] font-bold text-amber-500 uppercase tracking-widest mt-0.5";
+                } else {
+                    safetyLabel.innerText = "SOSTENIBLE";
+                    safetyLabel.className = "text-[9px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5";
+                }
+            }
+        };
+
+        const updateContent = () => {
+            const body = document.body;
+            const brandSub = document.getElementById('brandSub');
+            const brandIcon = document.getElementById('brandIcon');
+            const labelSlider = document.getElementById('labelSlider');
+            const labelMeta = document.getElementById('labelMeta');
+            const txtStat = document.getElementById('txtStat');
+            const goalSec = document.getElementById('goalSection');
+            const nutriTags = document.getElementById('nutriTags');
+            const listFood1 = document.getElementById('listFood1');
+            const listFood2 = document.getElementById('listFood2');
+            const priorityBadge = document.getElementById('priorityBadge');
+            const sourcesTitle = document.getElementById('txtSourcesTitle');
+            const rangeInput = document.getElementById('deficitRange');
+
+            if (goalIsGain) {
+                body.classList.add('bulk-mode');
+                brandSub.innerText = "BULK";
+                brandSub.className = "text-amber-400";
+                brandIcon.className = "w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-600 rounded-xl flex items-center justify-center";
+                labelSlider.innerText = "Superávit Diario";
+                labelMeta.innerText = "Meta de Volumen (kg)";
+                labelMeta.className = "text-[10px] font-bold text-amber-400 uppercase ml-1";
+                txtStat.innerText = "Ganancia/Día";
+                goalSec.className = "fit-card p-8 bg-gradient-to-br from-amber-600/80 to-orange-800/80 border-none relative overflow-hidden shadow-2xl";
+                priorityBadge.innerText = "CONSTRUCCIÓN";
+                priorityBadge.className = "text-[9px] bg-amber-500/20 px-2 py-0.5 rounded text-amber-300 font-bold uppercase tracking-tighter";
+                sourcesTitle.className = "text-xs font-bold text-amber-400 uppercase tracking-widest mb-4 flex items-center";
+                
+                // Sugerencias de volumen
+                nutriTags.innerHTML = `
+                    <span class="source-tag">Carbohidratos: +45%</span>
+                    <span class="source-tag">Grasas: 0.8g-1g/kg</span>
+                    <span class="source-tag">Surplus: 250-500kcal</span>
+                `;
+                listFood1.innerHTML = `
+                    <li>• <span class="text-white font-bold">Carnes Rojas & Salmón:</span> Calorías y Zinc.</li>
+                    <li>• <span class="text-white font-bold">Huevos Enteros:</span> Nutrientes y grasas sanas.</li>
+                    <li>• <span class="text-white font-bold">Pasta & Arroz:</span> Energía para el entreno.</li>
+                    <li>• <span class="text-white font-bold">Quinoa:</span> Carbohidrato con proteína.</li>
+                `;
+                listFood2.innerHTML = `
+                    <li>• <span class="text-white font-bold">Frutos Secos:</span> Densidad calórica máxima.</li>
+                    <li>• <span class="text-white font-bold">Aceite de Oliva:</span> Grasas monoinsaturadas.</li>
+                    <li>• <span class="text-white font-bold">Avena:</span> Fibra y carbohidratos lentos.</li>
+                    <li>• <span class="text-white font-bold">Plátanos:</span> Potasio y energía rápida.</li>
+                `;
+            } else {
+                body.classList.remove('bulk-mode');
+                brandSub.innerText = "PRO";
+                brandSub.className = "text-blue-400";
+                brandIcon.className = "w-10 h-10 accent-gradient rounded-xl flex items-center justify-center";
+                labelSlider.innerText = "Déficit Diario";
+                labelMeta.innerText = "Meta (kg)";
+                labelMeta.className = "text-[10px] font-bold text-blue-400 uppercase ml-1";
+                txtStat.innerText = "Pérdida/Día";
+                goalSec.className = "fit-card p-8 bg-gradient-to-br from-blue-600/80 to-indigo-900/80 border-none relative overflow-hidden shadow-2xl";
+                priorityBadge.innerText = sprintMode ? "MÁX. PRIORIDAD" : "ESTÁNDAR";
+                priorityBadge.className = sprintMode ? "text-[9px] bg-red-500/20 px-2 py-0.5 rounded text-red-400 font-bold uppercase" : "text-[9px] bg-blue-500/20 px-2 py-0.5 rounded text-blue-300 font-bold uppercase";
+                sourcesTitle.className = "text-xs font-bold text-blue-400 uppercase tracking-widest mb-4 flex items-center";
+
+                nutriTags.innerHTML = `
+                    <span class="source-tag">Sodio: 3-5g</span>
+                    <span class="source-tag">Potasio: 2-3g</span>
+                    <span class="source-tag">Proteína: 1.8g-2.4g/kg</span>
+                `;
+                listFood1.innerHTML = `
+                    <li>• <span class="text-white font-bold">Pechuga de Pollo:</span> Proteína pura.</li>
+                    <li>• <span class="text-white font-bold">Claras de Huevo:</span> 0% grasa.</li>
+                    <li>• <span class="text-white font-bold">Pescado Blanco:</span> Bajo en kcal.</li>
+                    <li>• <span class="text-white font-bold">Whey Protein:</span> Aislado sin azúcar.</li>
+                `;
+                listFood2.innerHTML = `
+                    <li>• <span class="text-white font-bold">Sal Marina:</span> Control de hidratación.</li>
+                    <li>• <span class="text-white font-bold">Espinacas:</span> Micronutrientes vitales.</li>
+                    <li>• <span class="text-white font-bold">Agua:</span> +3.5L para procesar proteína.</li>
+                    <li>• <span class="text-white font-bold">Magnesio:</span> Recuperación muscular.</li>
+                `;
+            }
+        };
+
+        const toggleGoal = (isGain) => {
+            goalIsGain = isGain;
+            const btnLose = document.getElementById('goalLose');
+            const btnGain = document.getElementById('goalGain');
+            const phaseContainer = document.getElementById('phaseContainer');
+            
+            if (isGain) {
+                btnGain.classList.add('active');
+                btnLose.classList.remove('active');
+                phaseContainer.classList.add('hidden'); // No hay 'Sprint' en volumen, solo agresividad de kcal
+            } else {
+                btnLose.classList.add('active');
+                btnGain.classList.remove('active');
+                phaseContainer.classList.remove('hidden');
+            }
+            updateContent();
+            saveState();
+        };
+
+        const togglePhase = (isSprint) => {
+            sprintMode = isSprint;
+            const btnS = document.getElementById('btnSprint');
+            const btnN = document.getElementById('btnNormal');
+            if (isSprint) {
+                btnS.classList.add('active');
+                btnN.classList.remove('active');
+            } else {
+                btnN.classList.add('active');
+                btnS.classList.remove('active');
+            }
+            updateContent();
+            saveState();
+        };
+
+        let saveTimeout;
+        const saveState = async () => {
+            if (!user) return;
+            const data = {
+                sexo: document.querySelector('input[name="sexo"]:checked').value,
+                edad: document.getElementById('edad').value,
+                altura: document.getElementById('altura').value,
+                peso: document.getElementById('peso').value,
+                pesoObjetivo: document.getElementById('pesoObjetivo').value,
+                actividad: document.getElementById('actividad').value,
+                deficitRange: document.getElementById('deficitRange').value,
+                goalIsGain: goalIsGain,
+                sprintMode: sprintMode,
+                timestamp: Date.now()
+            };
+            updateUI(data);
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'lastCase');
+                await setDoc(docRef, data);
+                document.getElementById('cloudStatus').innerHTML = '<span class="status-badge bg-green-500/10 text-green-400 px-2 py-1 rounded-full text-[10px] font-bold">NUBE OK</span>';
+            }, 800);
+        };
+
+        onAuthStateChanged(auth, (u) => {
+            user = u;
+            if (user) {
+                const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'lastCase');
+                onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists() && isFirstLoad) {
+                        const data = docSnap.data();
+                        if (data.sexo) document.querySelector(`input[name="sexo"][value="${data.sexo}"]`).checked = true;
+                        ['edad', 'altura', 'peso', 'pesoObjetivo', 'actividad', 'deficitRange'].forEach(id => {
+                            if (data[id]) document.getElementById(id).value = data[id];
+                        });
+                        if (data.goalIsGain !== undefined) toggleGoal(data.goalIsGain);
+                        if (data.sprintMode !== undefined) togglePhase(data.sprintMode);
+                        updateUI(data);
+                        isFirstLoad = false;
+                    }
+                });
+            }
+        });
+
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+
+        initAuth();
+        document.getElementById('goalLose').onclick = () => toggleGoal(false);
+        document.getElementById('goalGain').onclick = () => toggleGoal(true);
+        document.getElementById('btnSprint').onclick = () => togglePhase(true);
+        document.getElementById('btnNormal').onclick = () => togglePhase(false);
+        document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', saveState));
+        
+        // Carga inicial
+        updateContent();
+    </script>
+</body>
+</html>
+
