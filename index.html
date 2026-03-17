@@ -11,7 +11,7 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #0f172a;
             color: #f1f5f9;
-            background-image: linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), 
+            background-image: linear-gradient(rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.92)), 
                               url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
@@ -35,14 +35,18 @@
             box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
             outline: none;
         }
+        .phase-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
         .phase-btn.active {
             background: #38bdf8;
             color: white;
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+            border-color: transparent;
         }
         .bulk-mode .phase-btn.active {
             background: #f59e0b;
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
         }
         .source-tag {
             background: rgba(255, 255, 255, 0.05);
@@ -70,17 +74,16 @@
     </div>
 
     <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
         <!-- PANEL DE CONTROL -->
         <div class="lg:col-span-4 space-y-6">
             <div class="fit-card p-4 flex gap-2">
-                <button id="goalLose" class="phase-btn active flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all">PERDER GRASA</button>
+                <button id="goalLose" class="phase-btn active flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all border border-transparent">PERDER GRASA</button>
                 <button id="goalGain" class="phase-btn flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all border border-slate-700">SUBIR MÚSCULO</button>
             </div>
 
             <div id="phaseContainer" class="fit-card p-3 flex gap-2 bg-slate-900/40">
-                <button id="btnNormal" class="phase-btn active flex-1 py-2 rounded-lg text-[9px] font-bold uppercase">Sostenible</button>
-                <button id="btnSprint" class="phase-btn flex-1 py-2 rounded-lg text-[9px] font-bold uppercase">Agresivo</button>
+                <button id="btnNormal" class="phase-btn active flex-1 py-2 rounded-lg text-[9px] font-bold uppercase border border-transparent">Sostenible</button>
+                <button id="btnSprint" class="phase-btn flex-1 py-2 rounded-lg text-[9px] font-bold uppercase border border-slate-700">Agresivo</button>
             </div>
 
             <div class="fit-card p-6 shadow-2xl">
@@ -88,11 +91,11 @@
                     <div class="flex p-1 bg-slate-900/50 rounded-xl border border-slate-700/50">
                         <label class="flex-1">
                             <input type="radio" name="sexo" value="hombre" checked class="hidden peer">
-                            <div class="text-center py-2 rounded-lg cursor-pointer transition-all peer-checked:bg-blue-500 peer-checked:text-white text-slate-400 text-xs font-bold uppercase tracking-tighter">Hombre</div>
+                            <div class="text-center py-2 rounded-lg cursor-pointer transition-all peer-checked:bg-blue-500 peer-checked:text-white text-slate-400 text-xs font-bold uppercase">Hombre</div>
                         </label>
                         <label class="flex-1">
                             <input type="radio" name="sexo" value="mujer" class="hidden peer">
-                            <div class="text-center py-2 rounded-lg cursor-pointer transition-all peer-checked:bg-pink-500 peer-checked:text-white text-slate-400 text-xs font-bold uppercase tracking-tighter">Mujer</div>
+                            <div class="text-center py-2 rounded-lg cursor-pointer transition-all peer-checked:bg-pink-500 peer-checked:text-white text-slate-400 text-xs font-bold uppercase">Mujer</div>
                         </label>
                     </div>
 
@@ -189,9 +192,7 @@
                         </div>
                         <div id="microSection" class="mt-4 pt-4 border-t border-white/10 space-y-2">
                             <p id="txtNutri" class="text-[9px] font-bold text-blue-300 uppercase tracking-widest">Sugerencia Nutricional</p>
-                            <div id="nutriTags" class="flex flex-wrap gap-2">
-                                <!-- Contenido dinámico -->
-                            </div>
+                            <div id="nutriTags" class="flex flex-wrap gap-2"></div>
                         </div>
                     </div>
                 </div>
@@ -221,20 +222,242 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // CONFIGURACIÓN DE NUBE (Fallback seguro para local)
         let db = null;
         let user = null;
         let appId = 'fitcalc-v2';
         let isLocalMode = false;
+        let isHydrating = false;
 
-        try {
-            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-            appId = typeof __app_id !== 'undefined' ? __app_id : 'fitcalc-v2';
+        // LÓGICA DE APLICACIÓN
+        let sprintMode = false;
+        let goalIsGain = false;
+
+        const init = async () => {
+            try {
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'fitcalc-v2';
+                
+                if (firebaseConfig) {
+                    const app = initializeApp(firebaseConfig);
+                    const auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, (u) => {
+                        user = u;
+                        if (user) {
+                            document.getElementById('statusBadge').innerText = 'NUBE ACTIVA';
+                            document.getElementById('statusBadge').className = 'bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter';
+                            listenToData();
+                        }
+                    });
+                } else {
+                    throw new Error('Local');
+                }
+            } catch (e) {
+                isLocalMode = true;
+                document.getElementById('statusBadge').innerText = 'MODO LOCAL';
+                document.getElementById('statusBadge').className = 'bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter';
+                loadLocalData();
+            }
+        };
+
+        const render = () => {
+            const data = {
+                sexo: document.querySelector('input[name="sexo"]:checked').value,
+                edad: parseFloat(document.getElementById('edad').value) || 25,
+                altura: parseFloat(document.getElementById('altura').value) || 175,
+                peso: parseFloat(document.getElementById('peso').value) || 85,
+                pesoObjetivo: parseFloat(document.getElementById('pesoObjetivo').value) || (goalIsGain ? 90 : 75),
+                actividad: parseFloat(document.getElementById('actividad').value) || 1.55,
+                rangeVal: parseFloat(document.getElementById('deficitRange').value) || 500
+            };
+
+            // 1. Cálculos Base
+            let tmb = (data.sexo === 'hombre') 
+                ? (10 * data.peso) + (6.25 * data.altura) - (5 * data.edad) + 5
+                : (10 * data.peso) + (6.25 * data.altura) - (5 * data.edad) - 161;
+
+            const tdee = tmb * data.actividad;
+            const objetivo = goalIsGain ? tdee + data.rangeVal : tdee - data.rangeVal;
+            const kgDia = data.rangeVal / 7700;
+            const pesoCambio = goalIsGain ? data.pesoObjetivo - data.peso : data.peso - data.pesoObjetivo;
+
+            // Proteína
+            const protRatio = goalIsGain ? 2.1 : (sprintMode ? 2.5 : 1.9);
+            const protTotal = data.peso * protRatio;
+
+            // 2. Actualizar UI Numérica
+            document.getElementById('resTDEE').innerText = Math.round(tdee);
+            document.getElementById('resObjetivo').innerText = Math.round(objetivo);
+            document.getElementById('resKgDia').innerText = kgDia.toFixed(3);
+            document.getElementById('resProt').innerText = Math.round(protTotal);
+            document.getElementById('rangeDisplay').innerText = `${data.rangeVal} kcal`;
+
+            // Fecha Meta
+            if (pesoCambio > 0) {
+                const dias = (pesoCambio * 7700) / data.rangeVal;
+                document.getElementById('resDiasMeta').innerText = Math.round(dias);
+                const fecha = new Date();
+                fecha.setDate(fecha.getDate() + dias);
+                document.getElementById('resFechaEstimada').innerText = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase();
+            } else {
+                document.getElementById('resDiasMeta').innerText = "0";
+                document.getElementById('resFechaEstimada').innerText = "META ALCANZADA";
+            }
+
+            // 3. Actualizar Estilos y Modos
+            const body = document.body;
+            const brandSub = document.getElementById('brandSub');
+            const brandIcon = document.getElementById('brandIcon');
+            const labelSlider = document.getElementById('labelSlider');
+            const labelMeta = document.getElementById('labelMeta');
+            const txtStat = document.getElementById('txtStat');
+            const goalSec = document.getElementById('goalSection');
+            const nutriTags = document.getElementById('nutriTags');
+            const priorityBadge = document.getElementById('priorityBadge');
+            const safetyLabel = document.getElementById('safetyLabel');
+
+            if (goalIsGain) {
+                body.classList.add('bulk-mode');
+                brandSub.innerText = "BULK";
+                brandSub.className = "text-amber-400";
+                brandIcon.className = "w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20";
+                labelSlider.innerText = "Superávit Diario";
+                labelMeta.innerText = "Meta de Volumen (kg)";
+                labelMeta.className = "text-[10px] font-bold text-amber-400 uppercase ml-1";
+                txtStat.innerText = "Ganancia/Día";
+                goalSec.className = "fit-card p-8 bg-gradient-to-br from-amber-600/80 to-orange-800/80 border-none relative overflow-hidden shadow-2xl";
+                priorityBadge.innerText = "CONSTRUCCIÓN";
+                priorityBadge.className = "text-[9px] bg-amber-500/20 px-2 py-0.5 rounded text-amber-300 font-bold uppercase tracking-tighter";
+                
+                safetyLabel.innerText = data.rangeVal <= 300 ? "VOLUMEN LIMPIO" : (data.rangeVal <= 600 ? "MODERADO" : "SUCIO (RIESGO GRASA)");
+                safetyLabel.className = `text-[9px] font-bold uppercase tracking-widest mt-0.5 ${data.rangeVal <= 300 ? 'text-emerald-400' : (data.rangeVal <= 600 ? 'text-amber-400' : 'text-red-400')}`;
+
+                nutriTags.innerHTML = `<span class="source-tag">Carbos: +50%</span><span class="source-tag">Grasas: 1.1g/kg</span><span class="source-tag">Superávit: +${data.rangeVal}kcal</span>`;
+                document.getElementById('listFood1').innerHTML = `<li>• <b>Res & Salmón:</b> Creatina natural.</li><li>• <b>Pasta & Cereales:</b> Energía pura.</li><li>• <b>Lácteos Enteros:</b> Densidad calórica.</li>`;
+                document.getElementById('listFood2').innerHTML = `<li>• <b>Mantequilla de Maní:</b> Grasas sanas.</li><li>• <b>Aceite de Oliva:</b> Calidad lipídica.</li><li>• <b>Legumbres:</b> Fibra y proteína.</li>`;
+            } else {
+                body.classList.remove('bulk-mode');
+                brandSub.innerText = "PRO";
+                brandSub.className = "text-blue-400";
+                brandIcon.className = "w-10 h-10 accent-gradient rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20";
+                labelSlider.innerText = "Déficit Diario";
+                labelMeta.innerText = "Meta (kg)";
+                labelMeta.className = "text-[10px] font-bold text-blue-400 uppercase ml-1";
+                txtStat.innerText = "Pérdida/Día";
+                goalSec.className = "fit-card p-8 bg-gradient-to-br from-blue-600/80 to-indigo-900/80 border-none relative overflow-hidden shadow-2xl";
+                priorityBadge.innerText = sprintMode ? "MÁX. PROTECCIÓN" : "NORMAL";
+                priorityBadge.className = sprintMode ? "text-[9px] bg-red-500/20 px-2 py-0.5 rounded text-red-400 font-bold uppercase" : "text-[9px] bg-blue-500/20 px-2 py-0.5 rounded text-blue-300 font-bold uppercase";
+
+                const safetyPct = (data.rangeVal / tdee) * 100;
+                safetyLabel.innerText = safetyPct > 35 ? "SPRINT (ALTO RIESGO)" : (safetyPct > 22 ? "AGRESIVO" : "SOSTENIBLE");
+                safetyLabel.className = `text-[9px] font-bold uppercase tracking-widest mt-0.5 ${safetyPct > 35 ? 'text-red-400' : (safetyPct > 22 ? 'text-amber-400' : 'text-emerald-400')}`;
+
+                nutriTags.innerHTML = `<span class="source-tag">Proteína: ${protRatio}g/kg</span><span class="source-tag">Sodio: 4g</span><span class="source-tag">Agua: +3.8L</span>`;
+                document.getElementById('listFood1').innerHTML = `<li>• <b>Claras de Huevo:</b> 100% magro.</li><li>• <b>Pechuga de Pavo:</b> Baja en grasa.</li><li>• <b>Bacalao/Merluza:</b> Calorías mínimas.</li>`;
+                document.getElementById('listFood2').innerHTML = `<li>• <b>Verduras Verdes:</b> Volumen y saciedad.</li><li>• <b>Suplementos:</b> Magnesio & Potasio.</li><li>• <b>Infusiones:</b> Control de ansiedad.</li>`;
+            }
+        };
+
+        const saveState = async () => {
+            if (isHydrating) return;
+            const data = {
+                sexo: document.querySelector('input[name="sexo"]:checked').value,
+                edad: document.getElementById('edad').value,
+                altura: document.getElementById('altura').value,
+                peso: document.getElementById('peso').value,
+                pesoObjetivo: document.getElementById('pesoObjetivo').value,
+                actividad: document.getElementById('actividad').value,
+                deficitRange: document.getElementById('deficitRange').value,
+                goalIsGain, sprintMode, timestamp: Date.now()
+            };
+
+            render();
+
+            if (!isLocalMode && user) {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'lastCase'), data);
+                } catch (e) {}
+            } else {
+                localStorage.setItem('fitcalc_data', JSON.stringify(data));
+            }
+        };
+
+        const toggleGoal = (isGain) => {
+            goalIsGain = isGain;
+            document.getElementById('goalGain').classList.toggle('active', isGain);
+            document.getElementById('goalLose').classList.toggle('active', !isGain);
+            document.getElementById('phaseContainer').classList.toggle('hidden', isGain);
             
-            if (firebaseConfig) {
-                const app = initializeApp(firebaseConfig);
-                const auth = getAuth(app);
-                db = getFirestore(app);
+            // Ajuste inteligente del slider al cambiar modo
+            const slider = document.getElementById('deficitRange');
+            if (isGain && slider.value > 500) slider.value = 350;
+            if (!isGain && sprintMode) slider.value = 850;
 
-                const initAuth
+            saveState();
+        };
+
+        const togglePhase = (isSprint) => {
+            sprintMode = isSprint;
+            document.getElementById('btnSprint').classList.toggle('active', isSprint);
+            document.getElementById('btnNormal').classList.toggle('active', !isSprint);
+            
+            // Ajuste automático del slider para "sentir" el cambio
+            const slider = document.getElementById('deficitRange');
+            if (isSprint && slider.value < 750) slider.value = 850;
+            if (!isSprint && slider.value > 600) slider.value = 500;
+
+            saveState();
+        };
+
+        const applyData = (data) => {
+            isHydrating = true;
+            if (data.sexo) document.querySelector(`input[name="sexo"][value="${data.sexo}"]`).checked = true;
+            ['edad', 'altura', 'peso', 'pesoObjetivo', 'actividad', 'deficitRange'].forEach(id => {
+                if (data[id]) document.getElementById(id).value = data[id];
+            });
+            if (data.goalIsGain !== undefined) {
+                goalIsGain = data.goalIsGain;
+                document.getElementById('goalGain').classList.toggle('active', goalIsGain);
+                document.getElementById('goalLose').classList.toggle('active', !goalIsGain);
+                document.getElementById('phaseContainer').classList.toggle('hidden', goalIsGain);
+            }
+            if (data.sprintMode !== undefined) {
+                sprintMode = data.sprintMode;
+                document.getElementById('btnSprint').classList.toggle('active', sprintMode);
+                document.getElementById('btnNormal').classList.toggle('active', !sprintMode);
+            }
+            render();
+            isHydrating = false;
+        };
+
+        function loadLocalData() {
+            const saved = localStorage.getItem('fitcalc_data');
+            if (saved) applyData(JSON.parse(saved));
+            else render();
+        }
+
+        function listenToData() {
+            onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'lastCase'), (snap) => {
+                if (snap.exists() && !isHydrating) applyData(snap.data());
+            });
+        }
+
+        // EVENTOS
+        document.getElementById('goalLose').onclick = () => toggleGoal(false);
+        document.getElementById('goalGain').onclick = () => toggleGoal(true);
+        document.getElementById('btnSprint').onclick = () => togglePhase(true);
+        document.getElementById('btnNormal').onclick = () => togglePhase(false);
+        document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', saveState));
+        
+        init();
+    </script>
+</body>
+</html>
 
